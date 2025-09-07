@@ -4,58 +4,36 @@ Product Data:
 {product_info}
 
 **Evaluation Criteria:**
+1. **Ingredient Quality**: Analyze for whole foods vs. ultra-processed items, hidden sugars, artificial additives, and preservatives.
+2. **Nutritional Profile**: Evaluate nutrients per 100g using these thresholds:
+   - **Sugar**: <5g Good, 5-15g Medium, >15g Poor
+   - **Sodium**: <120mg Good, 120-600mg Medium, >600mg Poor  
+   - **Saturated Fat**: <1.5g Good, 1.5-5g Medium, >5g Poor
+   - **Fiber**: >6g Good, 3-6g Medium, <3g Poor
+3. **Processing Level**: Assess NOVA classification and health impact.
 
-1.  **Ingredient Quality**: Analyze the ingredient list for whole foods vs. ultra-processed items, hidden sugars (like corn syrup), artificial additives, and preservatives.
-2.  **Nutritional Profile**: Evaluate key nutrients per 100g. Use the following thresholds as a primary guide:
-    * **Sugar**: <5g is Good, 5-15g is Medium, >15g is Poor.
-    * **Sodium**: <120mg is Good, 120-600mg is Medium, >600mg is Poor.
-    * **Saturated Fat**: <1.5g is Good, 1.5-5g is Medium, >5g is Poor.
-    * **Fiber**: >6g is Good, 3-6g is Medium, <3g is Poor.
-3.  **Health Impact**: Assess the overall health impact, considering processing levels and risk factors for chronic diseases.
-
-**Output Format:**
-
-You MUST reply with a valid JSON object only. The structure must be exactly as follows:
-
-{
-    "score": "[A single integer from 0-100 based on overall healthiness]",
-    "band": "['Good', 'Medium', or 'Poor']",
-    "summary": "[A 1-2 sentence summary of the product's health profile, mentioning its main pros and cons.]",
-    "drivers": {
-        "positive": ["List up to 3 specific positive factors with values, e.g., 'Excellent source of fiber (7g per 100g)'"],
-        "negative": ["List up to 3 specific negative factors with values, e.g., 'Very high in sugar (22g per 100g)'"]
-    },
-    "evidence": {
-        "ingredient_analysis": {
-            "key_ingredients": ["List the top 5 most impactful ingredients."],
-            "additives_of_concern": ["List any artificial additives with a brief explanation of potential concerns. If none, state 'No concerning additives found.'"]
-        },
+**Output Format** (JSON only):
+{{
+    "score": "[0-100 integer]",
+    "band": "['Good'/'Medium'/'Poor']",
+    "summary": "[1-2 sentence health summary]",
+    "drivers": {{
+        "positive": ["Up to 3 specific positive factors"],
+        "negative": ["Up to 3 specific concerns"]
+    }},
+    "evidence": {{
+        "ingredient_analysis": {{
+            "key_ingredients": ["Top 5 ingredients"],
+            "additives_of_concern": "List or 'None identified'"
+        }},
         "nutritional_guidelines": [
-            {
+            {{
                 "nutrient": "Sugar",
-                "product_value": "[Value from product]g per 100g",
+                "product_value": "[X]g per 100g",
                 "guideline": "Good <5g, Medium 5-15g, Poor >15g",
-                "rating": "['Good', 'Medium', or 'Poor']"
-            },
-            {
-                "nutrient": "Saturated Fat",
-                "product_value": "[Value from product]g per 100g",
-                "guideline": "Good <1.5g, Medium 1.5-5g, Poor >5g",
-                "rating": "['Good', 'Medium', or 'Poor']"
-            },
-            {
-                "nutrient": "Sodium",
-                "product_value": "[Value from product]mg per 100g",
-                "guideline": "Good <120mg, Medium 120-600mg, Poor >600mg",
-                "rating": "['Good', 'Medium', or 'Poor']"
-            },
-            {
-                "nutrient": "Fiber",
-                "product_value": "[Value from product]g per 100g",
-                "guideline": "Good >6g, Medium 3-6g, Poor <3g",
-                "rating": "['Good', 'Medium', or 'Poor']"
-            }
+                "rating": "['Good'/'Medium'/'Poor']"
+            }}
         ],
-        "citations": ["Cite the primary health organizations you referenced, e.g., 'World Health Organization (WHO)', 'U.S. Food & Drug Administration (FDA)', 'UK National Health Service (NHS)'"]
-    }
-}
+        "citations": ["WHO", "FDA", "NHS"]
+    }}
+}}

@@ -25,18 +25,18 @@ class FoodAnalyzer:
         self._ensure_prompts_exist()
 
     def _initialize_llm(self) -> LLM:
-        """Initialize the LLM with proper configuration"""
+        """Initialize the LLM with proper configuration for OpenAI"""
         # Check for API key
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError(
-                "GOOGLE_API_KEY not found in environment variables. "
+                "OPENAI_API_KEY not found in environment variables. "
                 "Please set it in your .env file or environment."
             )
         
         return LLM(
-            model="gemini/gemini-2.0-flash",
-            temperature=0.1,  # Slightly higher for more natural responses
+            model="openai/gpt-4o-mini",
+            temperature=0.1,
             max_tokens=4096
         )
 
@@ -57,8 +57,8 @@ class FoodAnalyzer:
                 "research and international health guidelines."
             ),
             llm=self.llm,
-            verbose=False,  # Reduce noise in production
-            max_execution_time=60,  # 1 minute timeout
+            verbose=False,
+            max_execution_time=60,
         )
 
     def _ensure_prompts_exist(self):
@@ -165,12 +165,6 @@ Steps:
     def analyze_food_image(self, image_file) -> str:
         """
         Analyze a food label image using multimodal LLM
-        
-        Args:
-            image_file: Uploaded image file
-            
-        Returns:
-            JSON string with analysis results
         """
         try:
             # Convert image to base64
@@ -205,12 +199,6 @@ Steps:
     def analyze_food_data(self, product_data: Dict[str, Any]) -> str:
         """
         Analyze structured product data from barcode lookup
-        
-        Args:
-            product_data: Dictionary containing product information
-            
-        Returns:
-            JSON string with analysis results
         """
         try:
             # Convert product data to formatted string
@@ -241,48 +229,65 @@ Steps:
             logger.error(f"Data analysis failed: {e}")
             return self._create_error_response(f"Data analysis error: {str(e)}")
 
-    def _process_result(self, result) -> str:
-        """Process CrewAI result into clean JSON string"""
+def _process_result(self, result) -> str:
+    """Process CrewAI result into clean JSON string"""
+    try:
+        # Handle different result types
+        if hasattr(result, 'raw'):
+            result_str = result.raw
+        elif hasattr(result, 'result'):
+            result_str = result.result  
+        else:
+            result_str = str(result)
+        
+        # Clean up the result string
+        result_str = result_str.strip()
+        
+        # Remove markdown code blocks if present
+        if result_str.startswith('```json'):
+            result_str = result_str[7:]
+        if result_str.startswith('```'):
+            result_str = result_str[3:]
+        if result_str.endswith('```'):
+            result_str = result_str[:-3]
+        
+        result_str = result_str.strip()
+        
+        # Validate JSON
         try:
-            # Handle different result types
-            if hasattr(result, 'raw'):
-                result_str = result.raw
-            elif hasattr(result, 'result'):
-                result_str = result.result  
-            else:
-                result_str = str(result)
+            parsed = json.loads(result_str)
             
-            # Clean up the result string
-            result_str = result_str.strip()
+            # FIX: Convert score from string to integer
+            if 'score' in parsed and isinstance(parsed['score'], str):
+                try:
+                    parsed['score'] = int(parsed['score'])
+                except (ValueError, TypeError):
+                    parsed['score'] = 0  # Default if conversion fails
             
-            # Remove markdown code blocks if present
-            if result_str.startswith('```json'):
-                result_str = result_str[7:]
-            if result_str.startswith('```'):
-                result_str = result_str[3:]
-            if result_str.endswith('```'):
-                result_str = result_str[:-3]
+            # Ensure required fields exist
+            required_fields = ['score', 'band', 'summary', 'drivers']
+            for field in required_fields:
+                if field not in parsed:
+                    logger.warning(f"Missing required field: {field}")
+                    # Add default values for missing fields
+                    if field == 'score':
+                        parsed['score'] = 0
+                    elif field == 'band':
+                        parsed['band'] = 'Unknown'
+                    elif field == 'summary':
+                        parsed['summary'] = 'No summary available'
+                    elif field == 'drivers':
+                        parsed['drivers'] = {'positive': [], 'negative': []}
             
-            result_str = result_str.strip()
+            return json.dumps(parsed, ensure_ascii=False)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in result: {e}")
+            return self._create_error_response("AI returned invalid JSON format")
             
-            # Validate JSON
-            try:
-                parsed = json.loads(result_str)
-                # Ensure required fields exist
-                required_fields = ['score', 'band', 'summary', 'drivers']
-                for field in required_fields:
-                    if field not in parsed:
-                        logger.warning(f"Missing required field: {field}")
-                
-                return json.dumps(parsed, ensure_ascii=False)
-            except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON in result: {e}")
-                return self._create_error_response("AI returned invalid JSON format")
-                
-        except Exception as e:
-            logger.error(f"Result processing failed: {e}")
-            return self._create_error_response(f"Result processing error: {str(e)}")
-
+    except Exception as e:
+        logger.error(f"Result processing failed: {e}")
+        return self._create_error_response(f"Result processing error: {str(e)}")
+    
     def _create_error_response(self, error_message: str) -> str:
         """Create a standardized error response"""
         error_response = {
@@ -310,7 +315,6 @@ def get_analyzer() -> FoodAnalyzer:
         _analyzer = FoodAnalyzer()
     return _analyzer
 
-# Public API functions for backward compatibility
 def analyze_food_image(image_file):
     """Analyze food label image"""
     analyzer = get_analyzer()
@@ -321,7 +325,6 @@ def analyze_food_data(product_data: Dict[str, Any]):
     analyzer = get_analyzer()
     return analyzer.analyze_food_data(product_data)
 
-# Test function
 def test_analyzer():
     """Test the analyzer with sample data"""
     test_data = {

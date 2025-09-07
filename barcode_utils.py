@@ -3,6 +3,11 @@ import json
 from typing import Dict, List, Optional
 import logging
 from functools import lru_cache
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -10,26 +15,21 @@ logger = logging.getLogger(__name__)
 
 # Constants
 TIMEOUT = 10
-MAX_RETRIES = 2
 
 class ProductAPIClient:
-    """Unified client for multiple product API services"""
+    """Unified client for product API services"""
     
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": "FoodHealthAnalyzer/1.0 (Educational/Research)"
         })
+        self.barcode_lookup_key = os.getenv("BARCODE_LOOKUP_API_KEY")
 
     def fetch_product_by_barcode(self, barcode: str) -> Dict:
         """
-        Fetch product information using barcode from multiple APIs.
-        
-        Args:
-            barcode: Product barcode/EAN/UPC code
-            
-        Returns:
-            Dict with product info or error status
+        Fetch product information using barcode from APIs.
+        Priority: BarcodeLookup → OpenFoodFacts
         """
         # Validate and clean barcode
         cleaned_barcode = self._clean_barcode(barcode)
@@ -38,8 +38,8 @@ class ProductAPIClient:
         
         # Try APIs in order of preference
         api_methods = [
+            self._fetch_from_barcodelookup,
             self._fetch_from_openfoodfacts,
-            self._fetch_from_upcitemdb,
         ]
         
         for method in api_methods:
@@ -64,8 +64,102 @@ class ProductAPIClient:
             return False
         return len(barcode) in [8, 12, 13, 14]
 
+    def _fetch_from_barcodelookup(self, barcode: str) -> Dict:
+        """Fetch from BarcodeLookup API (primary source)"""
+        if not self.barcode_lookup_key:
+            raise Exception("BarcodeLookup API key not configured")
+        
+        url = "https://api.barcodelookup.com/v3/products"
+        params = {
+            "barcode": barcode,
+            "formatted": "y",
+            "key": self.barcode_lookup_key
+        }
+        
+        try:
+            response = self.session.get(url, params=params, timeout=TIMEOUT)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data.get("products") and len(data["products"]) > 0:
+                product = data["products"][0]
+                return self._parse_barcodelookup_data(product, barcode)
+            
+            return {"found": False, "source": "BarcodeLookup", "error": "Product not found"}
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"BarcodeLookup API error: {str(e)}")
+            return {"found": False, "source": "BarcodeLookup", "error": str(e)}
+
+    def _parse_barcodelookup_data(self, product: Dict, barcode: str) -> Dict:
+        """Parse BarcodeLookup product data into standardized format"""
+        # Extract ingredients
+        ingredients = self._extract_ingredients_barcodelookup(product)
+        
+        # Extract nutrients
+        nutrients = self._extract_nutrients_barcodelookup(product)
+        
+        # Get product metadata
+        return {
+            "found": True,
+            "source": "BarcodeLookup",
+            "barcode": barcode,
+            "name": product.get("product_name", "Unknown Product"),
+            "brand": product.get("brand", "Unknown Brand"),
+            "ingredients": ingredients,
+            "nutrients": nutrients,
+            "image_url": product.get("images", [None])[0] if product.get("images") else None,
+            "description": product.get("description", ""),
+            "category": product.get("category", ""),
+            "weight": product.get("weight", ""),
+            "nutrition_facts": product.get("nutrition_facts", "")
+        }
+
+    def _extract_ingredients_barcodelookup(self, product: Dict) -> List[str]:
+        """Extract ingredients from BarcodeLookup data"""
+        ingredients = []
+        
+        # Try different ingredient fields
+        ingredients_text = product.get("ingredients") or product.get("ingredients_english")
+        
+        if ingredients_text:
+            # Basic parsing - split by common separators
+            raw_ingredients = ingredients_text.replace(".", ",").split(",")
+            ingredients = [ing.strip() for ing in raw_ingredients if ing.strip()]
+        
+        return ingredients[:20]  # Limit to first 20 ingredients
+
+    def _extract_nutrients_barcodelookup(self, product: Dict) -> Dict:
+        """Extract nutrients from BarcodeLookup data"""
+        nutrients = {}
+        
+        # Check if nutrition facts are available
+        nutrition_facts = product.get("nutrition_facts")
+        if nutrition_facts:
+            nutrients["nutrition_facts"] = nutrition_facts
+        
+        # Look for specific nutrient fields
+        nutrient_mapping = {
+            "calories": ("calories", "kcal"),
+            "fat": ("fat", "g"),
+            "saturated_fat": ("saturated_fat", "g"),
+            "carbohydrates": ("carbohydrates", "g"),
+            "sugar": ("sugars", "g"),
+            "fiber": ("fiber", "g"),
+            "protein": ("protein", "g"),
+            "sodium": ("sodium", "mg")
+        }
+        
+        for api_key, (our_key, unit) in nutrient_mapping.items():
+            value = product.get(api_key)
+            if value is not None:
+                nutrients[our_key] = f"{value} {unit}"
+        
+        return nutrients
+
     def _fetch_from_openfoodfacts(self, barcode: str) -> Dict:
-        """Fetch from OpenFoodFacts API"""
+        """Fetch from OpenFoodFacts API (fallback)"""
         url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}"
         
         try:
@@ -104,8 +198,6 @@ class ProductAPIClient:
             "categories": product.get("categories_tags", []),
             "nutriscore": product.get("nutriscore_grade", "unknown").upper(),
             "nova_group": product.get("nova_group", "unknown"),
-            "serving_size": product.get("serving_size"),
-            "packaging": product.get("packaging_tags", [])
         }
 
     def _extract_ingredients(self, product: Dict) -> List[str]:
@@ -122,17 +214,15 @@ class ProductAPIClient:
         # Fallback to ingredients text
         elif product.get("ingredients_text"):
             ingredients_text = product["ingredients_text"]
-            # Basic parsing - split by common separators
             raw_ingredients = ingredients_text.replace(".", ",").split(",")
             ingredients = [ing.strip() for ing in raw_ingredients if ing.strip()]
         
-        return ingredients[:20]  # Limit to first 20 ingredients
+        return ingredients[:20]
 
     def _extract_nutrients(self, nutriments: Dict) -> Dict:
         """Extract and normalize nutrient data"""
         nutrients = {}
         
-        # Nutrient mapping with priority for per 100g values
         nutrient_mapping = {
             "energy-kcal_100g": ("calories", "kcal"),
             "fat_100g": ("fat", "g"),
@@ -148,59 +238,57 @@ class ProductAPIClient:
         for off_key, (our_key, unit) in nutrient_mapping.items():
             value = nutriments.get(off_key)
             if value is not None:
-                # Convert sodium from g to mg if needed
-                if our_key == "sodium" and unit == "mg" and "salt" not in off_key:
-                    value = value * 1000 if value < 10 else value  # Assume it's in grams if < 10
-                
                 nutrients[our_key] = f"{value:.1f} {unit}"
         
         return nutrients
-
-    def _fetch_from_upcitemdb(self, barcode: str) -> Dict:
-        """Fetch from UPCitemdb API (limited free tier)"""
-        url = "https://api.upcitemdb.com/prod/trial/lookup"
-        params = {"upc": barcode}
-        
-        try:
-            response = self.session.get(url, params=params, timeout=TIMEOUT)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if data.get("items") and len(data["items"]) > 0:
-                item = data["items"][0]
-                
-                return {
-                    "found": True,
-                    "source": "UPCitemdb",
-                    "name": item.get("title", "Unknown Product"),
-                    "brand": item.get("brand", "Unknown Brand"),
-                    "ingredients": [],  # UPCitemdb doesn't provide ingredients
-                    "nutrients": {},  # Limited nutritional data
-                    "description": item.get("description", ""),
-                    "image_url": item.get("images", [None])[0] if item.get("images") else None
-                }
-            
-            return {"found": False, "source": "UPCitemdb", "error": "Product not found"}
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"UPCitemdb API error: {str(e)}")
-            return {"found": False, "source": "UPCitemdb", "error": str(e)}
 
     @lru_cache(maxsize=100)
     def search_product_by_name(self, product_name: str) -> List[Dict]:
         """
         Search for products by name with caching.
-        
-        Args:
-            product_name: Product name to search for
-            
-        Returns:
-            List of matching products
+        Uses BarcodeLookup API for better results
         """
         if len(product_name.strip()) < 3:
             return []
         
+        if not self.barcode_lookup_key:
+            # Fallback to OpenFoodFacts if no BarcodeLookup key
+            return self._search_openfoodfacts(product_name)
+        
+        # Try BarcodeLookup search first
+        try:
+            url = "https://api.barcodelookup.com/v3/products"
+            params = {
+                "search": product_name.strip(),
+                "formatted": "y",
+                "key": self.barcode_lookup_key,
+                "limit": 10
+            }
+            
+            response = self.session.get(url, params=params, timeout=TIMEOUT)
+            response.raise_for_status()
+            
+            data = response.json()
+            products = []
+            
+            for product in data.get("products", []):
+                products.append({
+                    "name": product.get("product_name", "Unknown"),
+                    "brand": product.get("brand", "Unknown Brand"),
+                    "barcode": product.get("barcode_number", ""),
+                    "image_url": product.get("images", [None])[0] if product.get("images") else None,
+                    "category": product.get("category", "")
+                })
+            
+            return products
+            
+        except Exception as e:
+            logger.error(f"BarcodeLookup search error: {str(e)}")
+            # Fallback to OpenFoodFacts
+            return self._search_openfoodfacts(product_name)
+
+    def _search_openfoodfacts(self, product_name: str) -> List[Dict]:
+        """Fallback search using OpenFoodFacts"""
         url = "https://world.openfoodfacts.org/cgi/search.pl"
         params = {
             "search_terms": product_name.strip(),
@@ -219,7 +307,6 @@ class ProductAPIClient:
             products = []
             
             for product in data.get("products", []):
-                # Filter out products with missing essential data
                 if not product.get("product_name") or not product.get("code"):
                     continue
                 
@@ -247,7 +334,6 @@ def get_api_client() -> ProductAPIClient:
         _api_client = ProductAPIClient()
     return _api_client
 
-# Public API functions
 def fetch_product_by_barcode(barcode: str) -> Dict:
     """Public interface for barcode lookup"""
     client = get_api_client()
@@ -262,22 +348,3 @@ def validate_barcode(barcode: str) -> bool:
     """Public interface for barcode validation"""
     client = get_api_client()
     return client._validate_barcode(client._clean_barcode(barcode))
-
-# Test function
-def test_api():
-    """Test function for development"""
-    # Test with a known barcode (Coca-Cola)
-    test_barcode = "5449000000996"
-    print(f"Testing barcode: {test_barcode}")
-    
-    result = fetch_product_by_barcode(test_barcode)
-    print(json.dumps(result, indent=2))
-    
-    # Test search
-    print("\nTesting search:")
-    search_results = search_product_by_name("Nutella")
-    for product in search_results[:3]:
-        print(f"- {product['name']} ({product['brand']})")
-
-if __name__ == "__main__":
-    test_api()
