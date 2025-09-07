@@ -370,14 +370,27 @@ class LangGraphProcessor:
             # Convert to RGB if needed
             if image.mode != "RGB":
                 image = image.convert("RGB")
-                
+
             # Resize the image if it's too large (to reduce API costs)
             max_dimension = 800
             if max(image.size) > max_dimension:
                 ratio = max_dimension / max(image.size)
                 new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
                 image = image.resize(new_size)
-                
+
+            # --- Enhanced preprocessing ---
+            try:
+                from PIL import ImageEnhance, ImageFilter
+                # Increase contrast
+                enhancer = ImageEnhance.Contrast(image)
+                image = enhancer.enhance(1.5)
+                # Denoise (smooth)
+                image = image.filter(ImageFilter.MedianFilter(size=3))
+                # Sharpen
+                image = image.filter(ImageFilter.SHARPEN)
+            except Exception as e:
+                logger.warning(f"Image enhancement failed: {str(e)}")
+
             # Convert to base64
             buffered = io.BytesIO()
             image.save(buffered, format="JPEG", quality=85)

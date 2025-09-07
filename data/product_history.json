@@ -1,0 +1,296 @@
+[
+  {
+    "product_name": "Organic Apple Juice",
+    "nutrition_data": {
+      "energy_kcal": 46.0,
+      "sugars_g": 10.4,
+      "saturated_fat_g": 0.0,
+      "salt_g": 0.0,
+      "fiber_g": 0.2,
+      "protein_g": 0.1,
+      "fruits_veg_nuts_percent": 100.0
+    },
+    "product_type": {
+      "is_beverage": true,
+      "is_cheese": false,
+      "contains_sweeteners": false
+    },
+    "ingredients": [
+      "Organic apple juice"
+    ],
+    "source": "LangGraph Analysis",
+    "confidence": "Medium",
+    "timestamp": "2025-09-07T17:34:03.096546",
+    "missing_fields": [
+      "iron_mg",
+      "salt_g",
+      "calcium_mg",
+      "vitamin_c_mg",
+      "total_fat_g",
+      "saturated_fat_g",
+      "potassium_mg",
+      "carbohydrates_g"
+    ]
+  },
+  {
+    "product_name": "Organic Apple Juice",
+    "nutrition_data": {
+      "energy_kcal": 46.0,
+      "sugars_g": 10.0,
+      "saturated_fat_g": 0.0,
+      "salt_g": 0.0,
+      "fiber_g": 0.0,
+      "protein_g": 0.0,
+      "fruits_veg_nuts_percent": 100.0
+    },
+    "product_type": {
+      "is_beverage": true,
+      "is_cheese": false,
+      "contains_sweeteners": false
+    },
+    "ingredients": [
+      "organic apple juice"
+    ],
+    "source": "LangGraph Analysis",
+    "confidence": "Medium",
+    "timestamp": "2025-09-07T17:34:46.918958",
+    "missing_fields": [
+      "serving_size",
+      "minerals_mg",
+      "salt_g",
+      "total_fat_g",
+      "saturated_fat_g",
+      "vitamins_mg",
+      "carbohydrates_g"
+    ]
+  },
+  {
+    "id": "32e19838-1f52-4f3a-82a5-45e444fc8810",
+    "timestamp": "2025-09-07T17:34:50.300078",
+    "product_name": "Organic Apple Juice",
+    "brand": "Unknown",
+    "source": "Image OCR Analysis (LLM)",
+    "confidence": "Medium",
+    "product_data": {
+      "product_name": "Organic Apple Juice",
+      "nutrition_data": {
+        "energy_kcal": 46.0,
+        "sugars_g": 10.0,
+        "saturated_fat_g": 0.0,
+        "salt_g": 0.0,
+        "fiber_g": 0.0,
+        "protein_g": 0.0,
+        "fruits_veg_nuts_percent": 100.0
+      },
+      "product_type": {
+        "is_beverage": true,
+        "is_cheese": false,
+        "contains_sweeteners": false
+      },
+      "ingredients": [
+        "organic apple juice"
+      ],
+      "source": "Image OCR Analysis (LLM)",
+      "confidence": "Medium",
+      "timestamp": "2025-09-07T17:34:46.918958",
+      "missing_fields": [
+        "serving_size",
+        "minerals_mg",
+        "salt_g",
+        "total_fat_g",
+        "saturated_fat_g",
+        "vitamins_mg",
+        "carbohydrates_g"
+      ]
+    },
+    "score_data": {
+      "raw_score": -3,
+      "normalized_score": 90,
+      "grade": "A",
+      "calculation_log": [
+        {
+          "component": "energy_calories",
+          "value": 46.0,
+          "points": 0,
+          "is_negative": true
+        },
+        {
+          "component": "sugars",
+          "value": 10.0,
+          "points": 2,
+          "is_negative": true
+        },
+        {
+          "component": "saturated_fatty_acids",
+          "value": 0.0,
+          "points": 0,
+          "is_negative": true
+        },
+        {
+          "component": "salt_sodium",
+          "value": 0.0,
+          "points": 0,
+          "is_negative": true
+        },
+        {
+          "component": "fiber",
+          "value": 0.0,
+          "points": 0,
+          "is_negative": false
+        },
+        {
+          "component": "protein",
+          "value": 0.0,
+          "points": 0,
+          "is_negative": false
+        },
+        {
+          "component": "fruits_vegetables_legumes_nuts",
+          "value": 100.0,
+          "points": 5,
+          "is_negative": false
+        }
+      ],
+      "is_beverage": true,
+      "is_cheese": false,
+      "contains_sweeteners": false,
+      "sources": [
+        "Nutri-Score 2024 Algorithm",
+        "EU Regulation 1169/2011 (INCO)"
+      ],
+      "explanation": "This beverage received a Nutri-Score grade of A.\n\nMain negative factors:\n- Sugars: 10.0 (2 points)\n- Energy Calories: 46.0 (0 points)\n\nMain positive factors:\n- Fruits Vegetables Legumes Nuts: 100.0 (5 points)\n- Fiber: 0.0 (0 points)\n\nOverall, this is considered a relatively healthy beverage according to the Nutri-Score system.\n\nThe Nutri-Score is based on the 2024 algorithm, which evaluates both negative components (calories, sugars, saturated fat, salt) and positive components (fiber, protein, fruits/vegetables/nuts)."
+    }
+  },
+  {
+    "product_name": "Organic Mixed Berry Juice",
+    "nutrition_data": {
+      "energy_kcal": 45.0,
+      "sugars_g": 10.0,
+      "saturated_fat_g": 0.0,
+      "salt_g": 0.01,
+      "fiber_g": 0.0,
+      "protein_g": 0.0,
+      "fruits_veg_nuts_percent": 100.0
+    },
+    "product_type": {
+      "is_beverage": true,
+      "is_cheese": false,
+      "contains_sweeteners": false
+    },
+    "ingredients": [
+      "water",
+      "organic apple juice concentrate",
+      "organic raspberry puree",
+      "organic strawberry puree",
+      "organic blueberry puree"
+    ],
+    "source": "LangGraph Analysis",
+    "confidence": "Medium",
+    "timestamp": "2025-09-07T17:34:57.470567",
+    "missing_fields": [
+      "iron_mg",
+      "serving_size",
+      "calcium_mg",
+      "cholesterol_mg",
+      "vitamin_c_mg",
+      "total_fat_g",
+      "saturated_fat_g",
+      "potassium_mg"
+    ]
+  },
+  {
+    "id": "3f8e6344-7cb3-4e7f-a3ce-a3bedc652378",
+    "timestamp": "2025-09-07T17:35:08.841542",
+    "product_name": "Simply Salted Potato Wafers",
+    "brand": "balaji, Balaji",
+    "source": "Open Food Facts",
+    "confidence": "High",
+    "product_data": {
+      "product_name": "Simply Salted Potato Wafers",
+      "product_id": "8906010500016",
+      "brand": "balaji, Balaji",
+      "quantity": "30 grams",
+      "categories": "Snacks, Salty snacks, Sweet snacks, Appetizers, Chips and fries, Biscuits and cakes, Crisps, Biscuits, Salty snacks made from potato",
+      "nutrition_data": {
+        "energy_kcal": 554,
+        "sugars_g": 0.8,
+        "saturated_fat_g": 15.7,
+        "salt_g": 962.5,
+        "fiber_g": 7.2,
+        "protein_g": 7.7,
+        "fruits_veg_nuts_percent": 0
+      },
+      "product_type": {
+        "is_beverage": false,
+        "is_cheese": false,
+        "contains_sweeteners": false
+      },
+      "ingredients": [
+        "Potato (89%)",
+        "Edible Vegetable Oil(Palmolein)",
+        "Jodized Salt (0.4%)."
+      ],
+      "image_url": "https://images.openfoodfacts.org/images/products/890/601/050/0016/front_en.24.400.jpg",
+      "source": "Open Food Facts",
+      "confidence": "High",
+      "timestamp": "2025-09-07T17:35:08.832443"
+    },
+    "score_data": {
+      "raw_score": 24,
+      "normalized_score": 10,
+      "grade": "E",
+      "calculation_log": [
+        {
+          "component": "energy_calories",
+          "value": 554,
+          "points": 10,
+          "is_negative": true
+        },
+        {
+          "component": "sugars",
+          "value": 0.8,
+          "points": 0,
+          "is_negative": true
+        },
+        {
+          "component": "saturated_fatty_acids",
+          "value": 15.7,
+          "points": 10,
+          "is_negative": true
+        },
+        {
+          "component": "salt_sodium",
+          "value": 962.5,
+          "points": 13,
+          "is_negative": true
+        },
+        {
+          "component": "fiber",
+          "value": 7.2,
+          "points": 5,
+          "is_negative": false
+        },
+        {
+          "component": "protein",
+          "value": 7.7,
+          "points": 4,
+          "is_negative": false
+        },
+        {
+          "component": "fruits_vegetables_legumes_nuts",
+          "value": 0,
+          "points": 0,
+          "is_negative": false
+        }
+      ],
+      "is_beverage": false,
+      "is_cheese": false,
+      "contains_sweeteners": false,
+      "sources": [
+        "Nutri-Score 2024 Algorithm",
+        "EU Regulation 1169/2011 (INCO)"
+      ],
+      "explanation": "This food product received a Nutri-Score grade of E.\n\nMain negative factors:\n- Salt Sodium: 962.5 (13 points)\n- Energy Calories: 554 (10 points)\n\nMain positive factors:\n- Fiber: 7.2 (5 points)\n- Protein: 7.7 (4 points)\n\nOverall, this food product received a lower health rating according to the Nutri-Score system.\n\nThe Nutri-Score is based on the 2024 algorithm, which evaluates both negative components (calories, sugars, saturated fat, salt) and positive components (fiber, protein, fruits/vegetables/nuts)."
+    }
+  }
+]
