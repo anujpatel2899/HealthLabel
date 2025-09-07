@@ -6,6 +6,10 @@ Analyze food products for **healthiness** using **AI, Nutri-Score, and barcode/l
 
 ---
 
+## 🎥 Demo Video
+
+[▶️ Watch the Demo on YouTube](https://youtu.be/z4iy_71MrHE)
+
 # 🛠️ Tech Stack
 
 ## ⚡ Core Components
@@ -119,7 +123,7 @@ The app displays:
 
 ## 🕒 6. History & User Experience
 
-- Each analyzed product is **saved to a history file**.
+- Each analyzed product is **saved to a history file** in data folder.
 - Users can review **past searches and scores**.
 
 ---

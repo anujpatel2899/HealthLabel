@@ -1,145 +1,69 @@
 [
   {
-    "product_name": "Amul Cheese",
-    "product_id": "8901262020244",
-    "brand": "Amul",
-    "quantity": "200g",
-    "categories": "Cheese block, en:cheeses",
+    "product_name": "Delicious Fruit Yogurt",
     "nutrition_data": {
-      "energy_kcal": 0,
-      "sugars_g": 0,
-      "saturated_fat_g": 0,
-      "salt_g": 0,
-      "fiber_g": 0,
-      "protein_g": 0,
-      "fruits_veg_nuts_percent": 0
+      "energy_kcal": 95.0,
+      "sugars_g": 12.0,
+      "saturated_fat_g": 1.5,
+      "salt_g": 0.1,
+      "fiber_g": 0.0,
+      "protein_g": 4.0,
+      "fruits_veg_nuts_percent": 15.0
     },
     "product_type": {
       "is_beverage": false,
       "is_cheese": false,
       "contains_sweeteners": false
     },
-    "ingredients": [],
-    "image_url": "https://images.openfoodfacts.org/images/products/890/126/202/0244/front_en.3.400.jpg",
-    "source": "Open Food Facts",
-    "confidence": "High",
-    "timestamp": "2025-09-07T18:00:12.948617"
+    "ingredients": [
+      "milk",
+      "sugar",
+      "strawberries",
+      "natural flavor",
+      "live cultures"
+    ],
+    "source": "LangGraph Analysis",
+    "confidence": "Medium",
+    "timestamp": "2025-09-07T19:26:06.579104",
+    "missing_fields": [
+      "serving_size",
+      "carbohydrates_g",
+      "total_fat_g",
+      "cholesterol_mg",
+      "vitamins_and_minerals"
+    ]
   },
   {
-    "id": "dc349797-37f3-4cc3-b187-f2e3a06621ae",
-    "timestamp": "2025-09-07T18:00:12.955041",
-    "product_name": "Amul Cheese",
-    "brand": "Amul",
-    "source": "Open Food Facts",
-    "confidence": "High",
-    "product_data": {
-      "product_name": "Amul Cheese",
-      "product_id": "8901262020244",
-      "brand": "Amul",
-      "quantity": "200g",
-      "categories": "Cheese block, en:cheeses",
-      "nutrition_data": {
-        "energy_kcal": 0,
-        "sugars_g": 0,
-        "saturated_fat_g": 0,
-        "salt_g": 0,
-        "fiber_g": 0,
-        "protein_g": 0,
-        "fruits_veg_nuts_percent": 0
-      },
-      "product_type": {
-        "is_beverage": false,
-        "is_cheese": false,
-        "contains_sweeteners": false
-      },
-      "ingredients": [],
-      "image_url": "https://images.openfoodfacts.org/images/products/890/126/202/0244/front_en.3.400.jpg",
-      "source": "Open Food Facts",
-      "confidence": "High",
-      "timestamp": "2025-09-07T18:00:12.948617"
-    },
-    "score_data": {
-      "raw_score": 0,
-      "normalized_score": 70,
-      "grade": "B",
-      "calculation_log": [
-        {
-          "component": "energy_calories",
-          "value": 0,
-          "points": 0,
-          "is_negative": true
-        },
-        {
-          "component": "sugars",
-          "value": 0,
-          "points": 0,
-          "is_negative": true
-        },
-        {
-          "component": "saturated_fatty_acids",
-          "value": 0,
-          "points": 0,
-          "is_negative": true
-        },
-        {
-          "component": "salt_sodium",
-          "value": 0,
-          "points": 0,
-          "is_negative": true
-        },
-        {
-          "component": "fiber",
-          "value": 0,
-          "points": 0,
-          "is_negative": false
-        },
-        {
-          "component": "protein",
-          "value": 0,
-          "points": 0,
-          "is_negative": false
-        },
-        {
-          "component": "fruits_vegetables_legumes_nuts",
-          "value": 0,
-          "points": 0,
-          "is_negative": false
-        }
-      ],
-      "is_beverage": false,
-      "is_cheese": false,
-      "contains_sweeteners": false,
-      "sources": [
-        "Nutri-Score 2024 Algorithm",
-        "EU Regulation 1169/2011 (INCO)"
-      ],
-      "explanation": "This food product received a Nutri-Score grade of B.\n\nMain negative factors:\n- Energy Calories: 0 (0 points)\n- Sugars: 0 (0 points)\n\nMain positive factors:\n- Fiber: 0 (0 points)\n- Protein: 0 (0 points)\n\nOverall, this is considered a relatively healthy food product according to the Nutri-Score system.\n\nThe Nutri-Score is based on the 2024 algorithm, which evaluates both negative components (calories, sugars, saturated fat, salt) and positive components (fiber, protein, fruits/vegetables/nuts)."
-    }
-  },
-  {
-    "product_name": "Amul Cheese",
-    "product_id": "8901262020244",
-    "brand": "Amul",
-    "quantity": "200g",
-    "categories": "Cheese block, en:cheeses",
+    "product_name": "Organic Apple Juice",
     "nutrition_data": {
-      "energy_kcal": 0,
-      "sugars_g": 0,
-      "saturated_fat_g": 0,
-      "salt_g": 0,
-      "fiber_g": 0,
-      "protein_g": 0,
-      "fruits_veg_nuts_percent": 0
+      "energy_kcal": 46.0,
+      "sugars_g": 10.1,
+      "saturated_fat_g": 0.0,
+      "salt_g": 0.0,
+      "fiber_g": 0.2,
+      "protein_g": 0.1,
+      "fruits_veg_nuts_percent": 100.0
     },
     "product_type": {
-      "is_beverage": false,
+      "is_beverage": true,
       "is_cheese": false,
       "contains_sweeteners": false
     },
-    "ingredients": [],
-    "image_url": "https://images.openfoodfacts.org/images/products/890/126/202/0244/front_en.3.400.jpg",
-    "source": "Open Food Facts",
-    "confidence": "High",
-    "timestamp": "2025-09-07T18:00:12.981734"
+    "ingredients": [
+      "Organic apple juice"
+    ],
+    "source": "LangGraph Analysis",
+    "confidence": "Medium",
+    "timestamp": "2025-09-07T19:26:14.371383",
+    "missing_fields": [
+      "total_fat_g",
+      "potassium_mg",
+      "cholesterol_mg",
+      "salt_g",
+      "iron_mg",
+      "calcium_mg",
+      "saturated_fat_g",
+      "vitamin_c_mg"
+    ]
   }
 ]
