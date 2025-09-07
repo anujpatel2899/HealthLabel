@@ -1,207 +1,347 @@
-from crewai import Agent, Task, Crew, LLM
+import os
 import base64
 import json
+import logging
+from pathlib import Path
+from typing import Union, Dict, Any
 
-# --- LLM Setup ---
-# Using Gemini 2.0 Flash for multimodal capabilities (text + image)
-llm = LLM(
-    model="gemini/gemini-2.0-flash",  # Supports both text and image inputs
-    temperature=0.1,  # Low temperature for consistent analysis
-)
+# Import with error handling
+try:
+    from crewai import Agent, Task, Crew, LLM
+except ImportError as e:
+    logging.error(f"CrewAI import failed: {e}")
+    raise ImportError("CrewAI not installed. Run: pip install crewai")
 
-# --- Agents ---
-# Multi-modal agent that can handle both text data and images
-food_analyzer_agent = Agent(
-    role="Food Health Analyst & Nutritionist",
-    goal="Analyze food products for health impact and provide evidence-based scores",
-    backstory="""You are an expert nutritionist with 20 years of experience in food science 
-    and public health. You specialize in analyzing packaged foods, understanding their 
-    ingredients, nutritional profiles, and health implications. You always provide 
-    evidence-based assessments using scientific literature and established nutrition guidelines.""",
-    llm=llm,
-    verbose=True
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# --- Helper Functions ---
+class FoodAnalyzer:
+    """Centralized food analysis system using CrewAI"""
+    
+    def __init__(self):
+        self.llm = self._initialize_llm()
+        self.agent = self._create_agent()
+        self._ensure_prompts_exist()
+
+    def _initialize_llm(self) -> LLM:
+        """Initialize the LLM with proper configuration"""
+        # Check for API key
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GOOGLE_API_KEY not found in environment variables. "
+                "Please set it in your .env file or environment."
+            )
+        
+        return LLM(
+            model="gemini/gemini-2.0-flash",
+            temperature=0.1,  # Slightly higher for more natural responses
+            max_tokens=4096
+        )
+
+    def _create_agent(self) -> Agent:
+        """Create the specialized food analysis agent"""
+        return Agent(
+            role="Expert Food Health Analyst & Nutritionist",
+            goal=(
+                "Analyze food products for health impact, providing clear, evidence-based "
+                "scores and insights based on established nutritional guidelines from WHO, "
+                "FDA, and other health organizations."
+            ),
+            backstory=(
+                "You are a world-renowned nutritionist with 20+ years of experience in "
+                "food science and public health nutrition. You specialize in translating "
+                "complex nutritional data into actionable health insights for consumers. "
+                "Your analysis is always objective, scientific, and based on the latest "
+                "research and international health guidelines."
+            ),
+            llm=self.llm,
+            verbose=False,  # Reduce noise in production
+            max_execution_time=60,  # 1 minute timeout
+        )
+
+    def _ensure_prompts_exist(self):
+        """Ensure prompt files exist, create defaults if missing"""
+        prompts_dir = Path(__file__).parent / "prompts"
+        prompts_dir.mkdir(exist_ok=True)
+        
+        # Create default prompts if they don't exist
+        default_prompts = {
+            "data_analysis_prompt.txt": self._get_default_data_prompt(),
+            "image_analysis_prompt.txt": self._get_default_image_prompt()
+        }
+        
+        for filename, content in default_prompts.items():
+            prompt_path = prompts_dir / filename
+            if not prompt_path.exists():
+                prompt_path.write_text(content)
+                logger.info(f"Created default prompt: {filename}")
+
+    def _get_default_data_prompt(self) -> str:
+        """Default prompt for structured data analysis"""
+        return '''Analyze this packaged food product and provide a comprehensive health assessment.
+
+Product Data:
+{product_info}
+
+**Evaluation Criteria:**
+1. **Ingredient Quality**: Analyze for whole foods vs. ultra-processed items, hidden sugars, artificial additives, and preservatives.
+2. **Nutritional Profile**: Evaluate nutrients per 100g using these thresholds:
+   - **Sugar**: <5g Good, 5-15g Medium, >15g Poor
+   - **Sodium**: <120mg Good, 120-600mg Medium, >600mg Poor  
+   - **Saturated Fat**: <1.5g Good, 1.5-5g Medium, >5g Poor
+   - **Fiber**: >6g Good, 3-6g Medium, <3g Poor
+3. **Processing Level**: Assess NOVA classification and health impact.
+
+**Output Format** (JSON only):
+{{
+    "score": "[0-100 integer]",
+    "band": "['Good'/'Medium'/'Poor']",
+    "summary": "[1-2 sentence health summary]",
+    "drivers": {{
+        "positive": ["Up to 3 specific positive factors"],
+        "negative": ["Up to 3 specific concerns"]
+    }},
+    "evidence": {{
+        "ingredient_analysis": {{
+            "key_ingredients": ["Top 5 ingredients"],
+            "additives_of_concern": "List or 'None identified'"
+        }},
+        "nutritional_guidelines": [
+            {{
+                "nutrient": "Sugar",
+                "product_value": "[X]g per 100g",
+                "guideline": "Good <5g, Medium 5-15g, Poor >15g",
+                "rating": "['Good'/'Medium'/'Poor']"
+            }}
+        ],
+        "citations": ["WHO", "FDA", "NHS"]
+    }}
+}}'''
+
+    def _get_default_image_prompt(self) -> str:
+        """Default prompt for image analysis"""
+        return '''Analyze this food label image and provide a comprehensive health assessment.
+
+Steps:
+1. Extract all visible ingredients from the image
+2. Extract nutritional information (per 100g preferred)
+3. Evaluate healthiness based on extracted data
+
+**Output Format** (JSON only):
+{{
+    "score": "[0-100 integer]",
+    "band": "['Good'/'Medium'/'Poor']", 
+    "summary": "[1-2 sentences describing health profile]",
+    "drivers": {{
+        "positive": ["Specific positive factors found"],
+        "negative": ["Specific concerns identified"]
+    }},
+    "evidence": {{
+        "ingredients_found": ["All ingredients extracted"],
+        "nutrients_found": {{"nutrient": "value with unit"}},
+        "guidelines_used": ["Health guidelines referenced"],
+        "health_concerns": ["Specific concerns if any"]
+    }}
+}}'''
+
+    def load_prompt(self, filename: str) -> str:
+        """Load a prompt from the prompts directory"""
+        try:
+            prompt_path = Path(__file__).parent / "prompts" / filename
+            if not prompt_path.exists():
+                logger.warning(f"Prompt file {filename} not found, using default")
+                if "data" in filename:
+                    return self._get_default_data_prompt()
+                else:
+                    return self._get_default_image_prompt()
+            
+            return prompt_path.read_text(encoding='utf-8')
+        except Exception as e:
+            logger.error(f"Error loading prompt {filename}: {e}")
+            raise
+
+    def analyze_food_image(self, image_file) -> str:
+        """
+        Analyze a food label image using multimodal LLM
+        
+        Args:
+            image_file: Uploaded image file
+            
+        Returns:
+            JSON string with analysis results
+        """
+        try:
+            # Convert image to base64
+            image_file.seek(0)
+            image_data = image_file.read()
+            image_b64 = base64.b64encode(image_data).decode("utf-8")
+            
+            # Load prompt
+            prompt = self.load_prompt("image_analysis_prompt.txt")
+            
+            # Create analysis task
+            task = Task(
+                description=prompt,
+                agent=self.agent,
+                expected_output="Valid JSON object with health analysis results"
+            )
+            
+            # Create and run crew
+            crew = Crew(
+                agents=[self.agent],
+                tasks=[task],
+                verbose=False
+            )
+            
+            result = crew.kickoff(inputs={"image_base64": image_b64})
+            return self._process_result(result)
+            
+        except Exception as e:
+            logger.error(f"Image analysis failed: {e}")
+            return self._create_error_response(f"Image analysis error: {str(e)}")
+
+    def analyze_food_data(self, product_data: Dict[str, Any]) -> str:
+        """
+        Analyze structured product data from barcode lookup
+        
+        Args:
+            product_data: Dictionary containing product information
+            
+        Returns:
+            JSON string with analysis results
+        """
+        try:
+            # Convert product data to formatted string
+            product_info = json.dumps(product_data, indent=2)
+            
+            # Load and format prompt
+            prompt_template = self.load_prompt("data_analysis_prompt.txt")
+            prompt = prompt_template.format(product_info=product_info)
+            
+            # Create analysis task
+            task = Task(
+                description=prompt,
+                agent=self.agent,
+                expected_output="Valid JSON object with health analysis results"
+            )
+            
+            # Create and run crew
+            crew = Crew(
+                agents=[self.agent],
+                tasks=[task],
+                verbose=False
+            )
+            
+            result = crew.kickoff()
+            return self._process_result(result)
+            
+        except Exception as e:
+            logger.error(f"Data analysis failed: {e}")
+            return self._create_error_response(f"Data analysis error: {str(e)}")
+
+    def _process_result(self, result) -> str:
+        """Process CrewAI result into clean JSON string"""
+        try:
+            # Handle different result types
+            if hasattr(result, 'raw'):
+                result_str = result.raw
+            elif hasattr(result, 'result'):
+                result_str = result.result  
+            else:
+                result_str = str(result)
+            
+            # Clean up the result string
+            result_str = result_str.strip()
+            
+            # Remove markdown code blocks if present
+            if result_str.startswith('```json'):
+                result_str = result_str[7:]
+            if result_str.startswith('```'):
+                result_str = result_str[3:]
+            if result_str.endswith('```'):
+                result_str = result_str[:-3]
+            
+            result_str = result_str.strip()
+            
+            # Validate JSON
+            try:
+                parsed = json.loads(result_str)
+                # Ensure required fields exist
+                required_fields = ['score', 'band', 'summary', 'drivers']
+                for field in required_fields:
+                    if field not in parsed:
+                        logger.warning(f"Missing required field: {field}")
+                
+                return json.dumps(parsed, ensure_ascii=False)
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON in result: {e}")
+                return self._create_error_response("AI returned invalid JSON format")
+                
+        except Exception as e:
+            logger.error(f"Result processing failed: {e}")
+            return self._create_error_response(f"Result processing error: {str(e)}")
+
+    def _create_error_response(self, error_message: str) -> str:
+        """Create a standardized error response"""
+        error_response = {
+            "score": 0,
+            "band": "Unknown",
+            "summary": f"Analysis failed: {error_message}",
+            "drivers": {
+                "positive": [],
+                "negative": ["Analysis error occurred"]
+            },
+            "evidence": {
+                "error": error_message,
+                "status": "failed"
+            }
+        }
+        return json.dumps(error_response)
+
+# Global analyzer instance
+_analyzer = None
+
+def get_analyzer() -> FoodAnalyzer:
+    """Get or create global analyzer instance"""
+    global _analyzer
+    if _analyzer is None:
+        _analyzer = FoodAnalyzer()
+    return _analyzer
+
+# Public API functions for backward compatibility
 def analyze_food_image(image_file):
-    """
-    Analyzes an uploaded food label image using multimodal LLM.
-    Extracts ingredients, nutrients, and provides health analysis.
-    """
-    # Reset file pointer and read image
-    image_file.seek(0)
-    image_bytes = image_file.read()
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-    
-    # Task for image analysis
-    image_analysis_task = Task(
-        description="""
-        Analyze this food label image and provide a comprehensive health assessment.
-        
-        Steps:
-        1. Extract all visible ingredients from the image
-        2. Extract all nutritional information (per 100g/serving)
-        3. Evaluate the healthiness based on:
-           - Ingredient quality (whole foods vs processed)
-           - Sugar content (WHO recommends <25g/day)
-           - Sodium levels (WHO recommends <2000mg/day)
-           - Saturated fat (<10% of calories)
-           - Fiber content (>3g per serving is good)
-           - Protein quality and quantity
-           - Presence of artificial additives/preservatives
-           - Allergens and controversial ingredients
-        
-        Output MUST be valid JSON with this exact structure:
-        {
-            "score": [0-100 integer, where 100 is healthiest],
-            "band": ["Good" if score>70, "Medium" if 40-70, "Poor" if <40],
-            "summary": "[1-2 sentences describing overall healthiness]",
-            "drivers": [
-                "[Key factor 1 affecting health score]",
-                "[Key factor 2]",
-                "[Up to 5 key factors total]"
-            ],
-            "evidence": {
-                "ingredients_found": ["list of ingredients extracted"],
-                "nutrients_found": {"nutrient": "value with unit"},
-                "guidelines_used": ["WHO sugar guidelines", "FDA sodium limits", etc],
-                "health_concerns": ["specific concerns if any"]
-            }
-        }
-        
-        Base the score on scientific nutrition guidelines and evidence.
-        """,
-        agent=food_analyzer_agent,
-        expected_output="Valid JSON with score, band, summary, drivers, and evidence",
-        context={"image_base64": image_b64}
-    )
-    
-    crew = Crew(
-        agents=[food_analyzer_agent],
-        tasks=[image_analysis_task],
-        verbose=True
-    )
-    
-    result = crew.kickoff(inputs={"image_base64": image_b64})
-    return result
+    """Analyze food label image"""
+    analyzer = get_analyzer()
+    return analyzer.analyze_food_image(image_file)
 
-def analyze_food_data(product_data):
-    """
-    Analyzes structured product data (from barcode lookup) and provides health assessment.
-    """
-    # Prepare input data
-    ingredients = product_data.get("ingredients", [])
-    nutrients = product_data.get("nutrients", {})
-    product_name = product_data.get("name", "Unknown Product")
-    
-    # Create a formatted input string
-    input_text = f"""
-    Product: {product_name}
-    
-    Ingredients: {', '.join(ingredients) if ingredients else 'Not available'}
-    
-    Nutrition Facts:
-    {json.dumps(nutrients, indent=2) if nutrients else 'Not available'}
-    """
-    
-    # Task for data analysis
-    data_analysis_task = Task(
-        description="""
-        Analyze this packaged food product and provide a comprehensive health assessment.
-        
-        Evaluation criteria:
-        1. Ingredient Quality:
-           - Whole foods vs ultra-processed ingredients
-           - Artificial additives, colors, preservatives
-           - Hidden sugars (corn syrup, dextrose, etc.)
-           - Quality of protein sources
-        
-        2. Nutritional Profile (per 100g):
-           - Sugar: <5g excellent, 5-15g moderate, >15g poor
-           - Sodium: <120mg excellent, 120-600mg moderate, >600mg poor
-           - Saturated fat: <1.5g excellent, 1.5-5g moderate, >5g poor
-           - Fiber: >6g excellent, 3-6g good, <3g poor
-           - Protein: Consider quality and quantity
-        
-        3. Health Impact:
-           - Risk factors for chronic diseases
-           - Beneficial nutrients present
-           - Overall processing level (NOVA classification)
-        
-        Output MUST be valid JSON with this exact structure:
-        {
-            "score": [0-100 integer based on overall healthiness],
-            "band": ["Good" if score>70, "Medium" if 40-70, "Poor" if <40],
-            "summary": "[1-2 sentences with specific details about THIS product]",
-            "drivers": [
-                "[Specific health factor 1 with detail]",
-                "[Specific health factor 2 with detail]",
-                "[3-5 specific factors total]"
-            ],
-            "evidence": {
-                "nutritional_analysis": {
-                    "positive_aspects": ["list positive nutritional elements"],
-                    "negative_aspects": ["list concerning nutritional elements"]
-                },
-                "ingredient_concerns": ["specific problematic ingredients if any"],
-                "health_guidelines": ["WHO/FDA guidelines applied"],
-                "nova_classification": "[1-4, where 4 is ultra-processed]"
-            }
-        }
-        
-        Be specific and mention actual values from the product data.
-        Base scoring on established nutritional science and guidelines.
-        """,
-        agent=food_analyzer_agent,
-        expected_output="Valid JSON with detailed health analysis"
-    )
-    
-    crew = Crew(
-        agents=[food_analyzer_agent],
-        tasks=[data_analysis_task],
-        verbose=True
-    )
-    
-    result = crew.kickoff(inputs={"product_info": input_text})
-    return result
+def analyze_food_data(product_data: Dict[str, Any]):
+    """Analyze structured product data"""
+    analyzer = get_analyzer()
+    return analyzer.analyze_food_data(product_data)
 
-def normalize_product_data(raw_data):
-    """
-    Helper function to normalize data from different sources into standard format.
-    """
-    normalized = {
-        "ingredients": [],
-        "nutrients": {}
+# Test function
+def test_analyzer():
+    """Test the analyzer with sample data"""
+    test_data = {
+        "name": "Test Product",
+        "ingredients": ["Water", "Sugar", "Natural Flavors"],
+        "nutrients": {
+            "calories": "150 kcal",
+            "sugars": "25 g",
+            "sodium": "200 mg",
+            "fiber": "2 g"
+        }
     }
     
-    # Handle different data formats
-    if isinstance(raw_data, dict):
-        # Extract ingredients
-        if "ingredients" in raw_data:
-            normalized["ingredients"] = raw_data["ingredients"]
-        elif "ingredients_text" in raw_data:
-            # Parse comma-separated ingredients
-            normalized["ingredients"] = [
-                ing.strip() 
-                for ing in raw_data["ingredients_text"].split(",")
-            ]
-        
-        # Extract nutrients
-        if "nutrients" in raw_data:
-            normalized["nutrients"] = raw_data["nutrients"]
-        elif "nutriments" in raw_data:
-            # OpenFoodFacts format
-            nutriments = raw_data["nutriments"]
-            normalized["nutrients"] = {
-                "energy": nutriments.get("energy-kcal_100g", "N/A"),
-                "fat": f"{nutriments.get('fat_100g', 'N/A')}g",
-                "saturated_fat": f"{nutriments.get('saturated-fat_100g', 'N/A')}g",
-                "carbohydrates": f"{nutriments.get('carbohydrates_100g', 'N/A')}g",
-                "sugars": f"{nutriments.get('sugars_100g', 'N/A')}g",
-                "fiber": f"{nutriments.get('fiber_100g', 'N/A')}g",
-                "proteins": f"{nutriments.get('proteins_100g', 'N/A')}g",
-                "salt": f"{nutriments.get('salt_100g', 'N/A')}g",
-                "sodium": f"{nutriments.get('sodium_100g', 'N/A')}mg"
-            }
-    
-    return normalized
+    try:
+        analyzer = get_analyzer()
+        result = analyzer.analyze_food_data(test_data)
+        print("Test analysis result:")
+        print(json.dumps(json.loads(result), indent=2))
+    except Exception as e:
+        print(f"Test failed: {e}")
+
+if __name__ == "__main__":
+    test_analyzer()

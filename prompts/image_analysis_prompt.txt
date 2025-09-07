@@ -1,0 +1,23 @@
+Analyze this food label image and provide a comprehensive health assessment.
+
+Steps:
+1. Extract all visible ingredients from the image.
+2. Extract all nutritional information (per 100g or per serving).
+3. Evaluate the healthiness based on ingredient quality, sugar, sodium, saturated fat, fiber, and the presence of artificial additives.
+
+Output MUST be valid JSON with this exact structure:
+{
+    "score": "[0-100 integer, where 100 is healthiest]",
+    "band": "['Good' if score>70, 'Medium' if 40-70, 'Poor' if <40]",
+    "summary": "[1-2 sentences describing overall healthiness]",
+    "drivers": {
+        "positive": ["List specific positive factors found"],
+        "negative": ["List specific negative factors or concerns"]
+    },
+    "evidence": {
+        "ingredients_found": ["list of all ingredients extracted from the image"],
+        "nutrients_found": {"nutrient": "value with unit"},
+        "guidelines_used": ["WHO sugar guidelines", "FDA sodium limits", etc.],
+        "health_concerns": ["specific concerns if any"]
+    }
+}
