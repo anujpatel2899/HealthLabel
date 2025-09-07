@@ -7,6 +7,7 @@ of food products using the Nutri-Score algorithm.
 """
 
 import os
+from dotenv import load_dotenv
 import logging
 from src.frontend.app import app
 from src.utils.i18n import set_language_locale
@@ -25,6 +26,8 @@ logger = logging.getLogger(__name__)
 def main():
     """Run the Health Rater application."""
     try:
+        # Load environment variables from .env file
+        load_dotenv()
         # Set default locale
         set_language_locale('en')
         

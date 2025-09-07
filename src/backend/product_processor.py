@@ -26,43 +26,27 @@ class ProductDataProcessor:
     def process_barcode_data(self, barcode):
         """
         Process data from a barcode, attempt to fetch product information.
-        
         Args:
             barcode: The barcode string
-            
         Returns:
             dict: Normalized product data or None if not found
         """
         logger.info(f"Processing barcode: {barcode}")
-        
-        # For this example, we'll use Open Food Facts API
-        # In a production app, you might want to use multiple sources
         try:
             # Call Open Food Facts API
             url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
             response = requests.get(url, timeout=10)
-            
             if response.status_code != 200:
                 logger.warning(f"Failed to fetch product data for barcode {barcode}: Status {response.status_code}")
                 return None
-                
             data = response.json()
-            
             if data.get('status') != 1:
                 logger.warning(f"Product not found for barcode {barcode}")
                 return None
-                
-            # Extract and normalize product data
             product_data = data.get('product', {})
-            
-            # Process the data into a standardized format
             normalized_data = self._normalize_product_data(product_data)
-            
-            # Save to history
             self._save_to_history(normalized_data)
-            
             return normalized_data
-            
         except Exception as e:
             logger.error(f"Error processing barcode data: {str(e)}")
             return None

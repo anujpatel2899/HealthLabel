@@ -360,7 +360,7 @@ class LangGraphProcessor:
         """
         if not self.llm:
             logger.error("Cannot process image: No OpenAI API key available")
-            return None
+            return None 
             
         try:
             # Convert the image to base64 for LLM processing
