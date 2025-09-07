@@ -6,6 +6,65 @@ Analyze food products for **healthiness** using **AI, Nutri-Score, and barcode/l
 
 ---
 
+# 🛠️ Tech Stack
+
+## ⚡ Core Components
+
+- **LangGraph** → Orchestration framework to manage multi-step AI workflows  
+  (e.g., calling APIs, processing OCR, scoring logic).
+
+- **OpenFoodFacts API** → Source for product data (ingredients, nutrition facts, barcode lookup).
+
+- **OpenAI Model (GPT-4o / GPT-4-turbo / Gemini optional)** →
+
+  - OCR-based text extraction (when images are uploaded).
+  - Ingredient/nutrition text cleaning & normalization.
+  - Health analysis explanations in plain language.
+
+- **Nutri-Score (EU Criteria)** →
+  - Standardized EU scoring algorithm for food health evaluation.
+  - Uses product nutritional values (sugar, fat, salt, fiber, protein, etc.).
+  - Outputs a **score (0–100)** and **band (A–E, or Good/Medium/Poor)**.
+
+---
+
+## 🖥️ Frontend
+
+- **Plotly Dash** → Interactive UI for scanning barcodes, uploading photos, and showing results.
+- **Camera & File Upload Support** → For barcode scans and label photos.
+- **History Sidebar** → Saves recent analyses for quick review.
+
+---
+
+## ⚙️ Backend
+
+- **Python** (if separate backend is needed).
+- **LangGraph Agent** for chaining:
+  - Step 1: Input handling (barcode, photo, or text).
+  - Step 2: Data retrieval (OpenFoodFacts / OCR).
+  - Step 3: AI text normalization + ingredient checks.
+  - Step 4: Nutri-Score calculation.
+  - Step 5: Generate final insights.
+
+---
+
+## 📦 Infrastructure & Tools
+
+- **Environment Management**: `uv` for dependencies.
+- **Image Preprocessing**: OpenCV, Pillow (contrast, denoise, sharpen before OCR).
+- **OCR**: Tesseract (baseline) or AI-based OCR (OpenAI Vision/Gemini).
+- **Version Control**: Git + GitHub.
+
+---
+
+## 🔒 Data & Compliance
+
+- **Nutri-Score EU Criteria** ensures compliance with **European food health labeling standards**.
+- **OpenFoodFacts API** is an open-source database (community-driven, GDPR-safe).
+- **.env file** securely stores API keys (`OPENAI_API_KEY`, etc.).
+
+---
+
 ## 📥 1. Input Methods
 
 Users can provide product info in three ways:
